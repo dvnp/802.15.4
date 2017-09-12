@@ -1,0 +1,118 @@
+This patch adds two new bash script commands."iwpan-store" and
+"iwpan-restore" which can store and restore the current security
+table settings. This is currently a very KISS solution, we should lookup
+iptables implementation for storing and restoring the tables.
+
+Signed-off-by: Alexander Aring <alex.aring@xxxxxxxxx>
+---
+ src/Makefile.am   |  4 ++++
+ src/iwpan-restore | 36 ++++++++++++++++++++++++++++++++++++
+ src/iwpan-store   | 39 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 79 insertions(+)
+ create mode 100755 src/iwpan-restore
+ create mode 100755 src/iwpan-store
+
+diff --git a/src/Makefile.am b/src/Makefile.am
+index b2177a2..37a6d82 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -1,6 +1,10 @@
+ bin_PROGRAMS = \
+ 	iwpan
+ 
++bin_SCRIPTS = \
++	iwpan-store \
++	iwpan-restore
++
+ iwpan_SOURCES = \
+ 	iwpan.c \
+ 	iwpan.h \
+diff --git a/src/iwpan-restore b/src/iwpan-restore
+new file mode 100755
+index 0000000..0e305f6
+--- /dev/null
++++ b/src/iwpan-restore
+@@ -0,0 +1,36 @@
++#!/bin/sh
++
++WPAN_DEV=""
++FILE=""
++
++function usage() {
++	echo "usage: -d \$WPAN_DEV -f \$FILE"
++}
++
++while getopts "d:f:" opt; do
++	case $opt in
++		d)
++			WPAN_DEV=$OPTARG
++			;;
++		f)
++			FILE=$OPTARG
++			;;
++		?)
++			usage
++			;;
++	esac
++done
++
++if [ -z $FILE ] || [ -z $WPAN_DEV ]
++then
++	usage
++	exit 1
++fi
++
++function failed() {
++	echo "failed" >&2
++}
++
++export WPAN_DEV &&
++/bin/bash $FILE ||
++failed
+diff --git a/src/iwpan-store b/src/iwpan-store
+new file mode 100755
+index 0000000..acce807
+--- /dev/null
++++ b/src/iwpan-store
+@@ -0,0 +1,39 @@
++#!/bin/sh
++
++WPAN_DEV=""
++FILE=""
++
++function usage() {
++	echo "usage: -d \$WPAN_DEV -f \$FILE"
++}
++
++while getopts "d:f:" opt; do
++	case $opt in
++		d)
++			WPAN_DEV=$OPTARG
++			;;
++		f)
++			FILE=$OPTARG
++			;;
++		?)
++			usage
++			;;
++	esac
++done
++
++if [ -z $FILE ] || [ -z $WPAN_DEV ]
++then
++	usage
++	exit 1
++fi
++
++function failed() {
++	echo "failed" >&2
++	rm $FILE
++}
++
++iwpan dev $WPAN_DEV seclevel dump > $FILE &&
++iwpan dev $WPAN_DEV device dump >> $FILE &&
++iwpan dev $WPAN_DEV devkey dump >> $FILE &&
++iwpan dev $WPAN_DEV key dump >> $FILE ||
++failed
+-- 
+2.5.3

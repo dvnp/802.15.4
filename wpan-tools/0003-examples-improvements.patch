@@ -1,0 +1,413 @@
+diff --git a/examples/af_ieee802154_rx.c b/examples/af_ieee802154_rx.c
+index 86ba707..10edac7 100644
+--- a/examples/af_ieee802154_rx.c
++++ b/examples/af_ieee802154_rx.c
+@@ -29,7 +29,7 @@
+ 
+ #define IEEE802154_ADDR_LEN 8
+ #define MAX_PACKET_LEN 127
+-#define EXTENDED 1
++//#define EXTENDED
+ 
+ enum {
+ 	IEEE802154_ADDR_NONE = 0x0,
+@@ -56,12 +56,14 @@ int main(int argc, char *argv[]) {
+ 	struct sockaddr_ieee802154 src, dst;
+ 	unsigned char buf[MAX_PACKET_LEN + 1];
+ 	socklen_t addrlen;
++#if defined(EXTENDED) /* IEEE 802.15.4 extended address usage */
+ 	/* IEEE 802.15.4 extended address to receive frames on, adapt to your setup */
+-	uint8_t long_addr[IEEE802154_ADDR_LEN] = {0xd6, 0x55, 0x2c, 0xd6, 0xe4, 0x1c, 0xeb, 0x57};
++	uint8_t long_addr[IEEE802154_ADDR_LEN] = {0xde, 0xad, 0xbe, 0xef, 0xba, 0xbe, 0x00, 0x01};
++#endif
+ 
+ 	/* Create IEEE 802.15.4 address family socket for the SOCK_DGRAM type */
+ 	sd = socket(PF_IEEE802154, SOCK_DGRAM, 0);
+-	if (sd < 0) {
++	if(sd < 0) {
+ 		perror("socket");
+ 		return 1;
+ 	}
+@@ -69,39 +71,40 @@ int main(int argc, char *argv[]) {
+ 	/* Prepare source socket address struct */
+ 	memset(&src, 0, sizeof(src));
+ 	src.family = AF_IEEE802154;
+-	/* Used PAN ID is 0x23 here, adapt to your setup */
+-	src.addr.pan_id = 0x0023;
++	/* Used PAN ID is 0xbeef here, adapt to your setup */
++	src.addr.pan_id = 0xbeef;
+ 
+-#if EXTENDED /* IEEE 802.15.4 extended address usage */
++#if defined(EXTENDED) /* IEEE 802.15.4 extended address usage */
+ 	src.addr.addr_type = IEEE802154_ADDR_LONG;
+ 	memcpy(&src.addr.hwaddr, &long_addr, IEEE802154_ADDR_LEN);
+ #else
+ 	src.addr.addr_type = IEEE802154_ADDR_SHORT;
+-	src.addr.short_addr = 0x0002;
++	src.addr.short_addr = 0x0001;
+ #endif
+ 
+ 	/* Bind socket on this side */
+ 	ret = bind(sd, (struct sockaddr *)&src, sizeof(src));
+-	if (ret) {
++	if(ret) {
+ 		perror("bind");
+ 		close(sd);
+ 		return 1;
+ 	}
+ 
+ 	addrlen = sizeof(dst);
++	printf("Waiting for data receive...\n");
+ 
+ 	/* Infinite loop receiving 802.15.4 frames and print out */
+-	while (1) {
++	for(;;) {
+ 		ret = recvfrom(sd, buf, MAX_PACKET_LEN, 0, (struct sockaddr *)&dst, &addrlen);
+-		if (ret < 0) {
++		if(ret < 0) {
+ 			perror("recvfrom");
+ 			continue;
+ 		}
+ 		buf[ret] = '\0';
+ #if EXTENDED
+-		printf("Received (from %s): %s\n", dst.addr.hwaddr, buf);
++		printf("Received(%d) (from %s): %s\n", ret, dst.addr.hwaddr, buf);
+ #else
+-		printf("Received (from %x): %s\n", dst.addr.short_addr, buf);
++		printf("Received(%d) (from %#06x): %s\n", ret, dst.addr.short_addr, buf);
+ #endif
+ 	}
+ 
+diff --git a/examples/af_ieee802154_tx.c b/examples/af_ieee802154_tx.c
+index e85a109..3108fa5 100644
+--- a/examples/af_ieee802154_tx.c
++++ b/examples/af_ieee802154_tx.c
+@@ -29,7 +29,7 @@
+ 
+ #define IEEE802154_ADDR_LEN 8
+ #define MAX_PACKET_LEN 127
+-#define EXTENDED 1
++//#define EXTENDED
+ 
+ enum {
+ 	IEEE802154_ADDR_NONE = 0x0,
+@@ -56,12 +56,14 @@ int main(int argc, char *argv[]) {
+ 	ssize_t len;
+ 	struct sockaddr_ieee802154 dst;
+ 	unsigned char buf[MAX_PACKET_LEN + 1];
++#if defined(EXTENDED) /* IEEE 802.15.4 extended address usage */
+ 	/* IEEE 802.15.4 extended send address, adapt to your setup */
+-	uint8_t long_addr[IEEE802154_ADDR_LEN] = {0xd6, 0x55, 0x2c, 0xd6, 0xe4, 0x1c, 0xeb, 0x57};
++	uint8_t long_addr[IEEE802154_ADDR_LEN] = {0xde, 0xad, 0xbe, 0xef, 0xba, 0xbe, 0x00, 0x01};
++#endif
+ 
+ 	/* Create IEEE 802.15.4 address family socket for the SOCK_DGRAM type */
+ 	sd = socket(PF_IEEE802154, SOCK_DGRAM, 0);
+-	if (sd < 0) {
++	if(sd < 0) {
+ 		perror("socket");
+ 		return 1;
+ 	}
+@@ -69,15 +71,15 @@ int main(int argc, char *argv[]) {
+ 	/* Prepare destination socket address struct */
+ 	memset(&dst, 0, sizeof(dst));
+ 	dst.family = AF_IEEE802154;
+-	/* Used PAN ID is 0x23 here, adapt to your setup */
+-	dst.addr.pan_id = 0x0023;
++	/* Used PAN ID is 0xbeef here, adapt to your setup */
++	dst.addr.pan_id = 0xbeef;
+ 
+-#if EXTENDED /* IEEE 802.15.4 extended address usage */
++#if defined(EXTENDED) /* IEEE 802.15.4 extended address usage */
+ 	dst.addr.addr_type = IEEE802154_ADDR_LONG;
+ 	memcpy(&dst.addr.hwaddr, long_addr, IEEE802154_ADDR_LEN);
+ #else
+ 	dst.addr.addr_type = IEEE802154_ADDR_SHORT;
+-	dst.addr.short_addr = 0x0002;
++	dst.addr.short_addr = 0x0001;
+ #endif
+ 
+ 	sprintf(buf, "Hello world from IEEE 802.15.4 socket example!");
+@@ -85,8 +87,10 @@ int main(int argc, char *argv[]) {
+ 	/* sendto() is used for implicity in this example, bin()/send() would
+ 	 * be an alternative */
+ 	len = sendto(sd, buf, strlen(buf), 0, (struct sockaddr *)&dst, sizeof(dst));
+-	if (len < 0) {
++	if(len < 0) {
+ 		perror("sendto");
++	} else {
++		printf("Data sent ok.\n");
+ 	}
+ 
+ 	shutdown(sd, SHUT_RDWR);
+diff --git a/examples/af_inet6_rx.c b/examples/af_inet6_rx.c
+index d512471..2a2a902 100644
+--- a/examples/af_inet6_rx.c
++++ b/examples/af_inet6_rx.c
+@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
+ 
+ 	/* Create IPv6 address family socket for the SOCK_DGRAM type */
+ 	sd = socket(PF_INET6, SOCK_DGRAM, 0);
+-	if (sd < 0) {
++	if(sd < 0) {
+ 		perror("socket");
+ 		return 1;
+ 	}
+@@ -54,24 +54,25 @@ int main(int argc, char *argv[]) {
+ 
+ 	/* Bind socket on this side */
+ 	ret = bind(sd, (struct sockaddr *)&src, sizeof(src));
+-	if (ret) {
++	if(ret) {
+ 		perror("bind");
+ 		close(sd);
+ 		return 1;
+ 	}
+ 
+ 	addrlen = sizeof(dst);
++	printf("Waiting for data receive...\n");
+ 
+ 	/* Infinite loop receiving IPv6 packets and print out */
+-	while (1) {
++	for(;;) {
+ 		len = recvfrom(sd, buf, MAX_PACKET_LEN, 0, (struct sockaddr *)&dst, &addrlen);
+-		if (len < 0) {
++		if(len < 0) {
+ 			perror("recvfrom");
+ 			continue;
+ 		}
+ 		buf[len] = '\0';
+ 		inet_ntop(AF_INET6, &(dst.sin6_addr), ipv6, INET6_ADDRSTRLEN);
+-		printf("Received (from %s): %s\n", ipv6, buf);
++		printf("Received(%d) (from %s): %s\n", (int)len, ipv6, buf);
+ 	}
+ 
+ 	shutdown(sd, SHUT_RDWR);
+diff --git a/examples/af_inet6_tx.c b/examples/af_inet6_tx.c
+index 9fe7491..35dca79 100644
+--- a/examples/af_inet6_tx.c
++++ b/examples/af_inet6_tx.c
+@@ -28,7 +28,6 @@
+ #include <arpa/inet.h>
+ #include <net/if.h>
+ 
+-#define IEEE802154_ADDR_LEN 8
+ #define MAX_PACKET_LEN 2048
+ 
+ int main(int argc, char *argv[]) {
+@@ -37,20 +36,26 @@ int main(int argc, char *argv[]) {
+ 	struct ifreq ifr;
+ 	unsigned char buf[MAX_PACKET_LEN + 1];
+ 
++	if(argc != 2) {
++		printf("Usage: %s [inet_addr]\n", argv[0]);
++		return 1;
++	}
++
+ 	/* Create IPv6 address family socket for the SOCK_DGRAM type */
+ 	sd = socket(PF_INET6, SOCK_DGRAM, 0);
+-	if (sd < 0) {
++	if(sd < 0) {
+ 		perror("socket");
+-		return 1;
++		return 2;
+ 	}
+ 
+ 	/* Bind the socket to lowpan0 to make sure we send over it, adapt to your setup */
+ 	memset(&ifr, 0, sizeof(ifr));
+ 	snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), "lowpan0");
+ 	ret = setsockopt(sd, SOL_SOCKET, SO_BINDTODEVICE, (void *)&ifr, sizeof(ifr));
+-	if (ret < 0) {
++	if(ret < 0) {
+ 		perror("setsockopt");
+-		return 1;
++		close(sd);
++		return 3;
+ 	}
+ 
+ 	/* Prepare destination socket address struct */
+@@ -58,15 +63,17 @@ int main(int argc, char *argv[]) {
+ 	dst.sin6_family = AF_INET6;
+ 	/* Port within the compressed port range for potential NHC UDP compression */
+ 	dst.sin6_port = htons(61617);
+-	inet_pton(AF_INET6, "ff02::1", &(dst.sin6_addr));
++	inet_pton(AF_INET6, argv[1], &(dst.sin6_addr));
+ 
+ 	sprintf(buf, "Hello world from AF_INET6 socket example!");
+ 
+ 	/* sendto() is used for implicity in this example, bin()/send() would
+ 	 * be an alternative */
+ 	ret = sendto(sd, buf, strlen(buf), 0, (struct sockaddr *)&dst, sizeof(dst));
+-	if (ret < 0) {
++	if(ret < 0) {
+ 		perror("sendto");
++	} else {
++		printf("Data sent ok.\n");
+ 	}
+ 
+ 	shutdown(sd, SHUT_RDWR);
+diff --git a/examples/af_packet_rx.c b/examples/af_packet_rx.c
+index 9770965..76017ae 100644
+--- a/examples/af_packet_rx.c
++++ b/examples/af_packet_rx.c
+@@ -39,6 +39,34 @@
+ #define ETH_P_IEEE802154 0x00F6
+ #endif
+ 
++void dumpbuf(void *pdata, int len) {
++	const unsigned char *buf = (const unsigned char*)pdata;
++	char outbuf[1024], outbuf2[1024];
++	int olen = 0, olen2 = 0;
++	int i;
++	for(i = 0; i < len; ) {
++		if(i % 8 == 0) {
++			olen = olen2 = 0;
++			outbuf[olen] = outbuf2[olen2] = '\0';
++			olen += snprintf(outbuf + olen, sizeof(outbuf) - olen, "%03x: ", i);
++			if(i > len - 8) {
++				int j;
++				for(j = len % 8; j < 8; j++)
++					olen2 += snprintf(outbuf2 + olen2, sizeof(outbuf2) - olen2, "   ");
++			}
++			//olen2 += snprintf(outbuf2 + olen2, sizeof(outbuf2) - olen2, " ");
++		}
++
++		outbuf2[olen2++] = (buf[i] > ' ' && buf[i] < 0x7f) ? buf[i] : '.';
++		olen += snprintf(outbuf + olen, sizeof(outbuf) - olen, "%02x ", buf[i++]);
++
++		if((i % 8 == 0) || (i == len)) {
++			outbuf2[olen2] = '\0';
++			printf("%s%s\n", outbuf, outbuf2);
++		}
++	}
++}
++
+ int main(int argc, char *argv[]) {
+ 	int ret, sd, i;
+ 	ssize_t len;
+@@ -48,15 +76,15 @@ int main(int argc, char *argv[]) {
+ 
+ 	/* Create AF_PACKET address family socket for the SOCK_RAW type */
+ 	sd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IEEE802154));
+-	if (sd < 0) {
++	if(sd < 0) {
+ 		perror("socket");
+ 		return 1;
+ 	}
+ 
+ 	/* Get interface index */
+-	strncpy(ifr.ifr_name, "monitor0", IFNAMSIZ);
++	strncpy(ifr.ifr_name, "wpan0", IFNAMSIZ);
+ 	ret = ioctl(sd, SIOCGIFINDEX, &ifr);
+-	if (ret < 0) {
++	if(ret < 0) {
+ 		perror("ioctl");
+ 		close(sd);
+ 		return 1;
+@@ -70,23 +98,23 @@ int main(int argc, char *argv[]) {
+ 
+ 	/* Bind socket on this side */
+ 	ret = bind(sd, (struct sockaddr *)&sll, sizeof(sll));
+-	if (ret < 0) {
++	if(ret < 0) {
+ 		perror("bind");
+ 		close(sd);
+ 		return 1;
+ 	}
+ 
+-	while (1) {
++	printf("Waiting for data receive...\n");
++
++	for(;;) {
+ 		/* Receive and print the whole packet payload, including FCS */
+ 		len = recv(sd, buf, MAX_PACKET_LEN, 0);
+-		if (len < 0) {
++		if(len < 0) {
+ 			perror("recv");
+ 			continue;
+ 		}
+-		printf("Received:");
+-		for (i = 0; i < len; i++)
+-			printf(" %x", buf[i]);
+-		printf("\n");
++		printf("Received(%d):\n", (int)len);
++		dumpbuf(buf, len);
+ 	}
+ 
+ 	shutdown(sd, SHUT_RDWR);
+diff --git a/examples/af_packet_tx.c b/examples/af_packet_tx.c
+index 82a15f4..01e6d4f 100644
+--- a/examples/af_packet_tx.c
++++ b/examples/af_packet_tx.c
+@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
+ 
+ 	/* Create AF_PACKET address family socket for the SOCK_RAW type */
+ 	sd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IEEE802154));
+-	if (sd < 0) {
++	if(sd < 0) {
+ 		perror("socket");
+ 		return 1;
+ 	}
+@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
+ 	 * bytes from payload, using the normal IEEE 802.15.4 interface here */
+ 	strncpy(ifr.ifr_name, "wpan0", IFNAMSIZ);
+ 	ret = ioctl(sd, SIOCGIFINDEX, &ifr);
+-	if (ret < 0) {
++	if(ret < 0) {
+ 		perror("ioctl");
+ 		close(sd);
+ 		return 1;
+@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
+ 
+ 	/* Bind socket on this side */
+ 	ret = bind(sd, (struct sockaddr *)&sll, sizeof(sll));
+-	if (ret < 0) {
++	if(ret < 0) {
+ 		perror("bind");
+ 		close(sd);
+ 		return 1;
+@@ -79,28 +79,30 @@ int main(int argc, char *argv[]) {
+ 	buf[0] = 0x21; /* Frame Control Field */
+ 	buf[1] = 0xc8; /* Frame Control Field */
+ 	buf[2] = 0x8b; /* Sequence number */
+-	buf[3] = 0xff; /* Destination PAN ID 0xffff */
+-	buf[4] = 0xff; /* Destination PAN ID */
+-	buf[5] = 0x02; /* Destination short address 0x0002 */
++	buf[3] = 0xef; /* Destination PAN ID 0xbeef */
++	buf[4] = 0xbe; /* Destination PAN ID */
++	buf[5] = 0x01; /* Destination short address 0x0001 */
+ 	buf[6] = 0x00; /* Destination short address */
+-	buf[7] = 0x23; /* Source PAN ID 0x0023 */
+-	buf[8] = 0x00; /* */
+-	buf[9] = 0x60; /* Source extended address ae:c2:4a:1c:21:16:e2:60 */
+-	buf[10] = 0xe2; /* */
+-	buf[11] = 0x16; /* */
+-	buf[12] = 0x21; /* */
+-	buf[13] = 0x1c; /* */
+-	buf[14] = 0x4a; /* */
+-	buf[15] = 0xc2; /* */
+-	buf[16] = 0xae; /* */
++	buf[7] = 0xef; /* Source PAN ID 0xbeef */
++	buf[8] = 0xbe; /* */
++	buf[9] = 0x01; /* Source extended address de:ad:be:ef:ba:be:00:01  */
++	buf[10] = 0x00; /* */
++	buf[11] = 0xbe; /* */
++	buf[12] = 0xba; /* */
++	buf[13] = 0xef; /* */
++	buf[14] = 0xbe; /* */
++	buf[15] = 0xad; /* */
++	buf[16] = 0xde; /* */
+ 	buf[17] = 0xAA; /* Payload */
+ 	buf[18] = 0xBB; /* */
+ 	buf[19] = 0xCC; /* */
+ 
+ 	/* Send constructed packet over binded interface */
+ 	len = send(sd, buf, 20, 0);
+-	if (len < 0) {
++	if(len < 0) {
+ 		perror("send");
++	} else {
++		printf("Data sent ok.\n");
+ 	}
+ 
+ 	shutdown(sd, SHUT_RDWR);

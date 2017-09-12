@@ -1,0 +1,16 @@
+#!/bin/sh -v
+# copy files source to buildroot to the fast compile
+
+if [ ! -n "$1" ] || [ ! -n "$2" ]; then
+    echo "No input '$1 $2'."
+	exit 1
+fi
+
+sshpass -proot scp ./output/target/$2/kernel/net/ipv6/ipv6.ko root@$1:/$2/kernel/net/ipv6
+sshpass -proot scp ./output/target/$2/kernel/net/6lowpan/6lowpan.ko root@$1:/$2/kernel/net/6lowpan
+sshpass -proot scp ./output/target/$2/kernel/net/ieee802154/6lowpan/ieee802154_6lowpan.ko root@$1:/$2/kernel/net/ieee802154/6lowpan
+sshpass -proot scp ./output/target/$2/kernel/net/ieee802154/ieee802154.ko root@$1:/$2/kernel/net/ieee802154
+sshpass -proot scp ./output/target/$2/kernel/net/ieee802154/ieee802154_socket.ko root@$1:/$2/kernel/net/ieee802154
+sshpass -proot scp ./output/target/$2/kernel/net/ieee802154/6lowpan/ieee802154_6lowpan.ko root@$1:/$2/kernel/net/ieee802154/6lowpan
+sshpass -proot scp ./output/target/$2/kernel/net/mac802154/mac802154.ko root@$1:/$2/kernel/net/mac802154
+sshpass -proot scp ./output/target/$2/kernel/drivers/net/ieee802154/at86rf230.ko root@$1:/$2/kernel/drivers/net/ieee802154
